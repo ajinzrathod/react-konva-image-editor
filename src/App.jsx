@@ -18,6 +18,16 @@ const CONFIG = {
     p3: { x: 1007, y: 1020 }, 
     p4: { x: 1699, y: 1020 }
   },
+  // Text region coordinates (name/label area)
+  textRegion: {
+    p1: { x: 1021, y: 1839 },
+    p2: { x: 1700, y: 1839 },
+    p3: { x: 1700, y: 1962 },
+    p4: { x: 1021, y: 1962 }
+  },
+  textLabel: 'Ajinkya Rathod',
+  textBgColor: '#ed7f02',
+  textFgColor: '#FFFFFF', // White text
   handleSize: 10,
   gridColor: '#667eea',
   maxScale: 3.0 // Prevent excessive zoom-in
@@ -348,13 +358,14 @@ function ImageCropper() {
         const croppedCtx = croppedCanvas.getContext('2d')
         croppedCtx.drawImage(uploadedImage, imgX, imgY, imgWidth, imgHeight, 0, 0, imgWidth, imgHeight)
 
-        // Calculate scale to fit the template region
+        // Calculate scale to fill the template region (use Math.max to cover the area)
         const regionWidth = Math.abs(TEMPLATE_REGION.p2.x - TEMPLATE_REGION.p1.x)
         const regionHeight = Math.abs(TEMPLATE_REGION.p3.y - TEMPLATE_REGION.p1.y)
 
         const scaleX = regionWidth / imgWidth
         const scaleY = regionHeight / imgHeight
-        const scale = Math.min(scaleX, scaleY)
+        // Use Math.max to fill the region (may overflow slightly)
+        const scale = Math.max(scaleX, scaleY)
 
         const scaledWidth = imgWidth * scale
         const scaledHeight = imgHeight * scale
@@ -372,6 +383,24 @@ function ImageCropper() {
 
         // Draw template on top (its transparency will show user image behind)
         ctx.drawImage(templateImg, 0, 0)
+
+        // Draw text region with background
+        const textRegion = CONFIG.textRegion
+        const textX = textRegion.p1.x
+        const textY = textRegion.p1.y
+        const textWidth = textRegion.p2.x - textRegion.p1.x
+        const textHeight = textRegion.p3.y - textRegion.p1.y
+
+        // Draw background rectangle
+        ctx.fillStyle = CONFIG.textBgColor
+        ctx.fillRect(textX, textY, textWidth, textHeight)
+
+        // Draw text centered
+        ctx.fillStyle = CONFIG.textFgColor
+        ctx.font = 'bold 36px Arial' // Adjust font size as needed
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(CONFIG.textLabel, textX + textWidth / 2, textY + textHeight / 2)
 
         const mergedDataUrl = canvas.toDataURL('image/png')
         setMergedImage(mergedDataUrl)
