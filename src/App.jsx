@@ -686,12 +686,21 @@ function ImageCropper() {
 
         {uploadedImage && !mergedImage && (
           <div className="action-buttons">
-            <button onClick={handleMergeImages} className="btn btn-primary btn-download">
-              Preview Result
-            </button>
-            <button onClick={handleRetake} className="btn btn-secondary">
-              Cancel
-            </button>
+            {isProcessing ? (
+              <div className="loader-container">
+                <div className="spinner"></div>
+                <p>Rendering preview...</p>
+              </div>
+            ) : (
+              <>
+                <button onClick={handleMergeImages} className="btn btn-primary btn-download">
+                  Preview Result
+                </button>
+                <button onClick={handleRetake} className="btn btn-secondary">
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
         )}
 
