@@ -25,7 +25,6 @@ const CONFIG = {
     p3: { x: 1700, y: 1962 },
     p4: { x: 1021, y: 1962 }
   },
-  textLabel: 'Ghanshyam Pandey III',
   textBgColor: '#ed7f02',
   textFgColor: '#FFFFFF', // White text
   handleSize: 10,
@@ -58,10 +57,18 @@ function ImageCropper() {
   const [mergedImage, setMergedImage] = useState(null)
   const [stageDimensions, setStageDimensions] = useState({ width: 800, height: 500 })
   const [imageScale, setImageScale] = useState(1) // Fixed scale for image
+  const [userName, setUserName] = useState('') // User name state
+  const [errorMessage, setErrorMessage] = useState('') // Error message state
   const fileInputRef = useRef(null)
   const canvasRef = useRef(null)
   const imageRef = useRef(null)
   const stageRef = useRef(null)
+
+  // Show error message
+  const showError = (message) => {
+    setErrorMessage(message)
+    setTimeout(() => setErrorMessage(''), 4000) // Auto-clear after 4 seconds
+  }
 
   const STAGE_WIDTH = stageDimensions.width
   const STAGE_HEIGHT = stageDimensions.height
@@ -165,7 +172,13 @@ function ImageCropper() {
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('Image size exceeds 5MB. Please choose a smaller image.')
+      showError('Image size exceeds 5MB. Please choose a smaller image.')
+      return
+    }
+
+    // Validate name from input
+    if (!userName.trim()) {
+      showError('Please enter your name first')
       return
     }
 
@@ -333,7 +346,7 @@ function ImageCropper() {
   // Merge images
   const handleMergeImages = async () => {
     if (!uploadedImage) {
-      alert('Please upload an image first')
+      showError('Please upload an image first')
       return
     }
 
@@ -401,13 +414,13 @@ function ImageCropper() {
         const availableHeight = textHeight - 10
         
         // Start with a reasonable font size and adjust down if needed
-        let fontSize = Math.min(availableHeight * 0.85, availableWidth / (CONFIG.textLabel.length * 0.55))
+        let fontSize = Math.min(availableHeight * 0.85, availableWidth / (userName.length * 0.55))
         
         // Try the calculated font size and adjust if text is still too wide
         let attempts = 0
         while (attempts < 5) {
           ctx.font = `bold ${Math.round(fontSize)}px Arial`
-          const metrics = ctx.measureText(CONFIG.textLabel)
+          const metrics = ctx.measureText(userName)
           if (metrics.width <= availableWidth) break
           fontSize *= 0.9 // Reduce by 10% if too wide
           attempts++
@@ -421,7 +434,7 @@ function ImageCropper() {
         // Center point of the text region
         const centerX = textX + textWidth / 2
         const centerY = textY + textHeight / 2
-        ctx.fillText(CONFIG.textLabel, centerX, centerY)
+        ctx.fillText(userName, centerX, centerY)
 
         const mergedDataUrl = canvas.toDataURL('image/png')
         setMergedImage(mergedDataUrl)
@@ -429,7 +442,7 @@ function ImageCropper() {
       templateImg.src = templateImage
     } catch (error) {
       console.error('Error merging images:', error)
-      alert('Error merging images')
+      showError('Error merging images. Please try again.')
     }
   }
 
@@ -448,6 +461,7 @@ function ImageCropper() {
     setImageState({ x: 0, y: 0, scale: 1 })
     setCropBox({ x: 50, y: 50, width: 300, height: 400 })
     setMergedImage(null)
+    // Keep userName - don't clear it
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -456,10 +470,24 @@ function ImageCropper() {
   return (
     <div className="app">
       <div className="container">
+        {errorMessage && (
+          <div className="error-banner">
+            {errorMessage}
+          </div>
+        )}
 
         {!uploadedImage ? (
           <div className="upload-section">
             <div className="upload-box">
+              <p>Enter your name</p>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder=""
+                maxLength="30"
+                className="name-input"
+              />
               <p>Upload an image to get started</p>
               <input
                 ref={fileInputRef}
