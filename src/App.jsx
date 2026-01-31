@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Stage, Layer, Image as KonvaImage, Rect } from 'react-konva'
 import './App.css'
-import templateImage from './assets/template.jpeg'
+import templateImage from './assets/template.png'
+// import templateImage from './assets/template-removebg-preview.png'
 
 // Template region coordinates (4 corner points defining the target area)
 const TEMPLATE_REGION = {
@@ -10,6 +11,13 @@ const TEMPLATE_REGION = {
   p3: { x: 1007, y: 1020 },
   p4: { x: 1706, y: 1016 }
 }
+
+// const TEMPLATE_REGION = {
+//   p1: { x: 135, y: 425 },
+//   p2: { x: 294, y: 424 },
+//   p3: { x: 293, y: 241 },
+//   p4: { x: 333, y: 242 }
+// }
 
 const HANDLE_SIZE = 10
 const GRID_COLOR = '#667eea'
@@ -304,7 +312,6 @@ function ImageCropper() {
         canvas.height = templateImg.height
 
         const ctx = canvas.getContext('2d')
-        ctx.drawImage(templateImg, 0, 0)
 
         // Calculate crop region on the uploaded image
         const imgX = (cropBox.x - imageState.x) / imageState.scale
@@ -331,6 +338,7 @@ function ImageCropper() {
         const offsetX = (regionWidth - scaledWidth) / 2
         const offsetY = (regionHeight - scaledHeight) / 2
 
+        // Draw cropped user image
         ctx.drawImage(
           croppedCanvas,
           TEMPLATE_REGION.p3.x + offsetX,
@@ -338,6 +346,9 @@ function ImageCropper() {
           scaledWidth,
           scaledHeight
         )
+
+        // Draw template on top (its transparency will show user image behind)
+        ctx.drawImage(templateImg, 0, 0)
 
         const mergedDataUrl = canvas.toDataURL('image/png')
         setMergedImage(mergedDataUrl)
