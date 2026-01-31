@@ -25,7 +25,7 @@ const CONFIG = {
     p3: { x: 1700, y: 1962 },
     p4: { x: 1021, y: 1962 }
   },
-  textLabel: 'Ajinkya Rathod',
+  textLabel: 'Ghanshyam Pandey III',
   textBgColor: '#ed7f02',
   textFgColor: '#FFFFFF', // White text
   handleSize: 10,
@@ -401,7 +401,7 @@ function ImageCropper() {
         const availableHeight = textHeight - 10
         
         // Start with a reasonable font size and adjust down if needed
-        let fontSize = Math.min(availableHeight * 0.7, availableWidth / (CONFIG.textLabel.length * 0.55))
+        let fontSize = Math.min(availableHeight * 0.85, availableWidth / (CONFIG.textLabel.length * 0.55))
         
         // Try the calculated font size and adjust if text is still too wide
         let attempts = 0
@@ -413,12 +413,15 @@ function ImageCropper() {
           attempts++
         }
 
-        // Draw text centered
+        // Draw text centered (both horizontally and vertically)
         ctx.fillStyle = CONFIG.textFgColor
         ctx.font = `bold ${Math.round(fontSize)}px Arial`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(CONFIG.textLabel, textX + textWidth / 2, textY + textHeight / 2)
+        // Center point of the text region
+        const centerX = textX + textWidth / 2
+        const centerY = textY + textHeight / 2
+        ctx.fillText(CONFIG.textLabel, centerX, centerY)
 
         const mergedDataUrl = canvas.toDataURL('image/png')
         setMergedImage(mergedDataUrl)
