@@ -377,8 +377,8 @@ function ImageCropper() {
 
         const scaleX = regionWidth / imgWidth
         const scaleY = regionHeight / imgHeight
-        // Use Math.max to fill the region (may overflow slightly)
-        const scale = Math.max(scaleX, scaleY)
+        // Use Math.max to fill the region, then add 5% extra zoom to ensure no white edges
+        const scale = Math.max(scaleX, scaleY) * 1.05
 
         const scaledWidth = imgWidth * scale
         const scaledHeight = imgHeight * scale
