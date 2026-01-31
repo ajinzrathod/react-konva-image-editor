@@ -59,6 +59,7 @@ function ImageCropper() {
   const [imageScale, setImageScale] = useState(1) // Fixed scale for image
   const [userName, setUserName] = useState('') // User name state
   const [errorMessage, setErrorMessage] = useState('') // Error message state
+  const [isProcessing, setIsProcessing] = useState(false) // Loading state
   const fileInputRef = useRef(null)
   const canvasRef = useRef(null)
   const imageRef = useRef(null)
@@ -350,6 +351,7 @@ function ImageCropper() {
       return
     }
 
+    setIsProcessing(true)
     try {
       const templateImg = new window.Image()
       templateImg.onload = () => {
@@ -377,8 +379,8 @@ function ImageCropper() {
 
         const scaleX = regionWidth / imgWidth
         const scaleY = regionHeight / imgHeight
-        // Use Math.max to fill the region, then add 5% extra zoom to ensure no white edges
-        const scale = Math.max(scaleX, scaleY) * 1.05
+        // Use Math.max to fill the region (may overflow slightly)
+        const scale = Math.max(scaleX, scaleY)
 
         const scaledWidth = imgWidth * scale
         const scaledHeight = imgHeight * scale
@@ -443,6 +445,8 @@ function ImageCropper() {
     } catch (error) {
       console.error('Error merging images:', error)
       showError('Error merging images. Please try again.')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
@@ -470,15 +474,17 @@ function ImageCropper() {
   return (
     <div className="app">
       <div className="container">
-        {errorMessage && (
-          <div className="error-banner">
-            {errorMessage}
-          </div>
-        )}
+        <h1 className="app-title">✨ Swaminarayan Editor ✨</h1>
 
-        {!uploadedImage ? (
+        <div className="app-content">
+          {!uploadedImage ? (
           <div className="upload-section">
             <div className="upload-box">
+              {errorMessage && (
+                <div className="error-banner">
+                  {errorMessage}
+                </div>
+              )}
               <p>Enter your name</p>
               <input
                 type="text"
@@ -496,10 +502,18 @@ function ImageCropper() {
                 onChange={handleImageUpload}
                 className="file-input"
               />
-              <button onClick={() => fileInputRef.current?.click()} className="upload-btn">
+              <button 
+                onClick={() => {
+                  if (!userName.trim()) {
+                    showError('Please enter your name first')
+                    return
+                  }
+                  fileInputRef.current?.click()
+                }} 
+                className="upload-btn btn-large">
                 Choose Image
               </button>
-              <p className="file-size-note">Max size: 5MB</p>
+              <p className="file-size-note">📦 Max size: 5MB</p>
             </div>
           </div>
         ) : !mergedImage ? (
@@ -694,32 +708,48 @@ function ImageCropper() {
                 </Layer>
               </Stage>
             </div>
-
-
-
-            <div className="action-buttons">
-              <button onClick={handleMergeImages} className="btn btn-primary">
-                Preview Result
-              </button>
-              <button onClick={handleRetake} className="btn btn-secondary">
-                Cancel
-              </button>
-            </div>
           </div>
         ) : (
           <div className="preview-section">
             <img src={mergedImage} alt="Merged result" className="preview-image" />
-
-            <div className="action-buttons">
-              <button onClick={handleExportImage} className="btn btn-primary">
-                Looks Good - Download
-              </button>
-              <button onClick={handleRetake} className="btn btn-secondary">
-                Retake
-              </button>
-            </div>
           </div>
         )}
+        </div>
+
+        {uploadedImage && !mergedImage && (
+          <div className="action-buttons">
+            <button onClick={handleMergeImages} className="btn btn-primary btn-download">
+              Preview Result
+            </button>
+            <button onClick={handleRetake} className="btn btn-secondary">
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {mergedImage && (
+          <div className="action-buttons">
+            {isProcessing ? (
+              <div className="loader-container">
+                <div className="spinner"></div>
+                <p>Processing...</p>
+              </div>
+            ) : (
+              <>
+                <button onClick={handleExportImage} className="btn btn-primary btn-download">
+                  📥 Download
+                </button>
+                <button onClick={handleRetake} className="btn btn-secondary">
+                  🔄 Retake
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div className="app-footer">
+        Made with ❤️ &nbsp; by AJ
       </div>
 
       <canvas ref={canvasRef} style={{ display: 'none' }} />
