@@ -25,3 +25,5 @@ Features:
 - No backend required.
 - Fully visible UI, works on desktop and mobile.
 - Download final merged image.
+
+https://github.com/user-attachments/assets/9fe4b1e0-318d-4db0-ab6a-ea6862c3cc58
