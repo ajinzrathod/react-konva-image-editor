@@ -2,26 +2,36 @@ import { useState, useRef, useEffect } from 'react'
 import { Stage, Layer, Image as KonvaImage, Rect } from 'react-konva'
 import './App.css'
 import templateImage from './assets/template.png'
-// import templateImage from './assets/template-removebg-preview.png'
 
-// Template region coordinates (4 corner points defining the target area)
-const TEMPLATE_REGION = {
-  p1: { x: 1021, y: 1839 },
-  p2: { x: 1699, y: 1839 },
-  p3: { x: 1007, y: 1020 },
-  p4: { x: 1706, y: 1016 }
+// ===== CONFIGURATION =====
+// Update these values when changing template image
+const CONFIG = {
+  // Template region coordinates (4 corner points defining the target area)
+  templateRegion: {
+    // p1: { x: 900, y: 1900 },
+    // p2: { x: 1810, y: 1900 },
+    // p3: { x: 900, y: 1000 },
+    // p4: { x: 1810, y: 1000 }
+
+    p1: { x: 1007, y: 1839 }, 
+    p2: { x: 1699, y: 1839 }, 
+    p3: { x: 1007, y: 1020 }, 
+    p4: { x: 1699, y: 1020 }
+  },
+  handleSize: 10,
+  gridColor: '#667eea',
+  maxScale: 3.0 // Prevent excessive zoom-in
 }
 
-// const TEMPLATE_REGION = {
-//   p1: { x: 135, y: 425 },
-//   p2: { x: 294, y: 424 },
-//   p3: { x: 293, y: 241 },
-//   p4: { x: 333, y: 242 }
-// }
+// Calculate aspect ratio from template region
+const TEMPLATE_REGION = CONFIG.templateRegion
+const TEMPLATE_REGION_WIDTH = Math.abs(TEMPLATE_REGION.p2.x - TEMPLATE_REGION.p1.x)
+const TEMPLATE_REGION_HEIGHT = Math.abs(TEMPLATE_REGION.p1.y - TEMPLATE_REGION.p3.y)
+const CROP_ASPECT_RATIO = TEMPLATE_REGION_WIDTH / TEMPLATE_REGION_HEIGHT
 
-const HANDLE_SIZE = 10
-const GRID_COLOR = '#667eea'
-const MAX_SCALE = 3.0 // Prevent excessive zoom-in
+const HANDLE_SIZE = CONFIG.handleSize
+const GRID_COLOR = CONFIG.gridColor
+const MAX_SCALE = CONFIG.maxScale
 
 // Handle types for resize
 const HANDLES = {
@@ -194,7 +204,7 @@ function ImageCropper() {
     reader.readAsDataURL(file)
   }
 
-  // Handle crop box changes with boundary clamping
+  // Handle crop box changes with boundary clamping and aspect ratio constraint
   const handleCropBoxChange = (x, y, width, height) => {
     // Calculate image bounds in canvas coordinates using imageState.scale
     const scale = imageState.scale || imageScale || 1
@@ -205,18 +215,31 @@ function ImageCropper() {
     const imgRight = imgLeft + imgWidth
     const imgBottom = imgTop + imgHeight
 
+    // Enforce aspect ratio constraint
+    const calculatedHeight = width / CROP_ASPECT_RATIO
+    let clampedWidth = width
+    let clampedHeight = calculatedHeight
+
     // Clamp crop box within image bounds
-    let clampedX = Math.max(imgLeft, Math.min(x, imgRight - width))
-    let clampedY = Math.max(imgTop, Math.min(y, imgBottom - height))
-    let clampedWidth = Math.min(width, imgRight - clampedX)
-    let clampedHeight = Math.min(height, imgBottom - clampedY)
+    let clampedX = Math.max(imgLeft, Math.min(x, imgRight - clampedWidth))
+    let clampedY = Math.max(imgTop, Math.min(y, imgBottom - clampedHeight))
+    clampedWidth = Math.min(clampedWidth, imgRight - clampedX)
+    clampedHeight = Math.min(clampedHeight, imgBottom - clampedY)
+
+    // Re-adjust width to maintain aspect ratio if height was clamped
+    clampedWidth = clampedHeight * CROP_ASPECT_RATIO
 
     // Ensure minimum size (at least 1/3 of the smaller dimension or 80px)
     const minSize = Math.min(Math.max(80, Math.min(imgWidth, imgHeight) / 3), 150)
-    clampedWidth = Math.max(minSize, clampedWidth)
-    clampedHeight = Math.max(minSize, clampedHeight)
+    const minWidth = minSize
+    const minHeight = minSize / CROP_ASPECT_RATIO
 
-    // Re-clamp position after enforcing minimum size
+    if (clampedWidth < minWidth) {
+      clampedWidth = minWidth
+      clampedHeight = clampedWidth / CROP_ASPECT_RATIO
+    }
+
+    // Re-clamp position after enforcing minimum size and aspect ratio
     clampedX = Math.max(imgLeft, Math.min(clampedX, imgRight - clampedWidth))
     clampedY = Math.max(imgTop, Math.min(clampedY, imgBottom - clampedHeight))
 
