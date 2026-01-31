@@ -372,7 +372,6 @@ function ImageCropper() {
   return (
     <div className="app">
       <div className="container">
-        <h1>Image Editor</h1>
 
         {!uploadedImage ? (
           <div className="upload-section">
@@ -597,9 +596,7 @@ function ImageCropper() {
           </div>
         ) : (
           <div className="preview-section">
-            <div className="preview-container">
-              <img src={mergedImage} alt="Merged result" className="preview-image" />
-            </div>
+            <img src={mergedImage} alt="Merged result" className="preview-image" />
 
             <div className="action-buttons">
               <button onClick={handleExportImage} className="btn btn-primary">
