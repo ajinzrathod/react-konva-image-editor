@@ -103,11 +103,11 @@ function ImageCropper() {
       const imgWidth = uploadedImage.width
       const imgHeight = uploadedImage.height
       
-      // Scale down to fit entirely in viewport (contain behavior)
+      // Scale to fit entirely in viewport (contain behavior)
       const scaleX = STAGE_WIDTH / imgWidth
       const scaleY = STAGE_HEIGHT / imgHeight
-      // Don't scale up, only down - fitScale ensures image fits in viewport
-      const fitScale = Math.min(scaleX, scaleY, 1)
+      // fitScale ensures image fits in viewport (scale up or down as needed)
+      const fitScale = Math.min(scaleX, scaleY)
       // Clamp to max zoom, but allow any scale down (no min limit for large images)
       const clampedScale = Math.min(fitScale, MAX_SCALE)
       
@@ -151,7 +151,7 @@ function ImageCropper() {
         
         const scaleX = STAGE_WIDTH / imgWidth
         const scaleY = STAGE_HEIGHT / imgHeight
-        const fitScale = Math.min(scaleX, scaleY, 1) // Don't scale up, only down
+        const fitScale = Math.min(scaleX, scaleY) // Fit to viewport (scale up or down)
         
         // Clamp scale to max zoom, but allow any scale down (no min limit for large images)
         const clampedScale = Math.min(fitScale, MAX_SCALE)
