@@ -3,6 +3,7 @@ import { Stage, Layer, Image as KonvaImage, Rect } from 'react-konva'
 import './App.css'
 import templateImage from './assets/template.png'
 
+// Cache clear marker - v2
 // ===== CONFIGURATION =====
 // Update these values when changing template image
 const CONFIG = {
@@ -167,6 +168,8 @@ function ImageCropper() {
     }
   }, [stageDimensions, uploadedImage])
 
+
+
   // Handle image upload
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0]
@@ -275,19 +278,22 @@ function ImageCropper() {
     })
   }
 
-  // Handle mouse down on crop box
-  const handleMouseDown = (e, handle) => {
-    e.evt.preventDefault()
-    setIsDragging(true)
-    setDragHandle(handle)
+  // Handle mouse/touch down on crop box
+  const handleMouseDown = (e) => {
+    e.preventDefault()
   }
 
-  // Handle mouse move
-  const handleMouseMove = (e) => {
+
+
+  // Handle pointer move on any handle
+  const handlePointerMove = (e) => {
     if (!isDragging || !dragHandle) return
 
     const stage = stageRef.current
+    if (!stage) return
+
     const pos = stage.getPointerPosition()
+    if (!pos) return
 
     if (dragHandle === 'move') {
       handleCropBoxChange(pos.x - cropBox.width / 2, pos.y - cropBox.height / 2, cropBox.width, cropBox.height)
@@ -339,7 +345,7 @@ function ImageCropper() {
     }
   }
 
-  const handleMouseUp = () => {
+  const handlePointerUp = () => {
     setIsDragging(false)
     setDragHandle(null)
   }
@@ -519,21 +525,18 @@ function ImageCropper() {
         ) : !mergedImage ? (
           <div className="editor-section">
             <div className="crop-instructions">
-              <p>🖱️ Drag corners or edges to resize • Drag inside box to move</p>
+              <p>🖱️ Drag the 4 corners to resize</p>
             </div>
 
             <div
               className="crop-editor"
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
+              style={{ touchAction: 'none' }}
             >
               <Stage
                 width={STAGE_WIDTH}
                 height={STAGE_HEIGHT}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
                 ref={stageRef}
               >
                 <Layer>
@@ -584,7 +587,7 @@ function ImageCropper() {
                     opacity={0.3}
                   />
 
-                  {/* Main crop box outline */}
+                  {/* Draggable crop box area */}
                   <Rect
                     x={cropBox.x}
                     y={cropBox.y}
@@ -592,10 +595,13 @@ function ImageCropper() {
                     height={cropBox.height}
                     fill="transparent"
                     stroke={GRID_COLOR}
-                    strokeWidth={3}
-                    dash={[8, 4]}
-                    onMouseDown={(e) => handleMouseDown(e, 'move')}
-                    cursor="move"
+                    strokeWidth={2}
+                    onPointerDown={(e) => {
+                      e.cancelBubble = true
+                      setIsDragging(true)
+                      setDragHandle('move')
+                    }}
+                    cursor="grab"
                   />
 
                   {/* Corner handles - larger and more visible */}
@@ -608,7 +614,11 @@ function ImageCropper() {
                     stroke="white"
                     strokeWidth={2}
                     cornerRadius={2}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.TL)}
+                    onPointerDown={(e) => {
+                      e.cancelBubble = true
+                      setIsDragging(true)
+                      setDragHandle(HANDLES.TL)
+                    }}
                     cursor="nwse-resize"
                     opacity={isDragging && dragHandle === HANDLES.TL ? 1 : 0.9}
                   />
@@ -621,7 +631,11 @@ function ImageCropper() {
                     stroke="white"
                     strokeWidth={2}
                     cornerRadius={2}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.TR)}
+                    onPointerDown={(e) => {
+                      e.cancelBubble = true
+                      setIsDragging(true)
+                      setDragHandle(HANDLES.TR)
+                    }}
                     cursor="nesw-resize"
                     opacity={isDragging && dragHandle === HANDLES.TR ? 1 : 0.9}
                   />
@@ -634,7 +648,11 @@ function ImageCropper() {
                     stroke="white"
                     strokeWidth={2}
                     cornerRadius={2}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.BL)}
+                    onPointerDown={(e) => {
+                      e.cancelBubble = true
+                      setIsDragging(true)
+                      setDragHandle(HANDLES.BL)
+                    }}
                     cursor="nesw-resize"
                     opacity={isDragging && dragHandle === HANDLES.BL ? 1 : 0.9}
                   />
@@ -647,63 +665,13 @@ function ImageCropper() {
                     stroke="white"
                     strokeWidth={2}
                     cornerRadius={2}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.BR)}
+                    onPointerDown={(e) => {
+                      e.cancelBubble = true
+                      setIsDragging(true)
+                      setDragHandle(HANDLES.BR)
+                    }}
                     cursor="nwse-resize"
                     opacity={isDragging && dragHandle === HANDLES.BR ? 1 : 0.9}
-                  />
-
-                  {/* Edge handles - slightly smaller and less opaque */}
-                  <Rect
-                    x={cropBox.x + cropBox.width / 2 - HANDLE_SIZE / 2}
-                    y={cropBox.y - HANDLE_SIZE / 2}
-                    width={HANDLE_SIZE}
-                    height={HANDLE_SIZE}
-                    fill={GRID_COLOR}
-                    stroke="white"
-                    strokeWidth={1.5}
-                    cornerRadius={1}
-                    opacity={isDragging && dragHandle === HANDLES.T ? 1 : 0.6}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.T)}
-                    cursor="ns-resize"
-                  />
-                  <Rect
-                    x={cropBox.x + cropBox.width / 2 - HANDLE_SIZE / 2}
-                    y={cropBox.y + cropBox.height - HANDLE_SIZE / 2}
-                    width={HANDLE_SIZE}
-                    height={HANDLE_SIZE}
-                    fill={GRID_COLOR}
-                    stroke="white"
-                    strokeWidth={1.5}
-                    cornerRadius={1}
-                    opacity={isDragging && dragHandle === HANDLES.B ? 1 : 0.6}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.B)}
-                    cursor="ns-resize"
-                  />
-                  <Rect
-                    x={cropBox.x - HANDLE_SIZE / 2}
-                    y={cropBox.y + cropBox.height / 2 - HANDLE_SIZE / 2}
-                    width={HANDLE_SIZE}
-                    height={HANDLE_SIZE}
-                    fill={GRID_COLOR}
-                    stroke="white"
-                    strokeWidth={1.5}
-                    cornerRadius={1}
-                    opacity={isDragging && dragHandle === HANDLES.L ? 1 : 0.6}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.L)}
-                    cursor="ew-resize"
-                  />
-                  <Rect
-                    x={cropBox.x + cropBox.width - HANDLE_SIZE / 2}
-                    y={cropBox.y + cropBox.height / 2 - HANDLE_SIZE / 2}
-                    width={HANDLE_SIZE}
-                    height={HANDLE_SIZE}
-                    fill={GRID_COLOR}
-                    stroke="white"
-                    strokeWidth={1.5}
-                    cornerRadius={1}
-                    opacity={isDragging && dragHandle === HANDLES.R ? 1 : 0.6}
-                    onMouseDown={(e) => handleMouseDown(e, HANDLES.R)}
-                    cursor="ew-resize"
                   />
                 </Layer>
               </Stage>
