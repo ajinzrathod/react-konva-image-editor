@@ -1,0 +1,393 @@
+.app {
+  width: 100%;
+  height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  padding: 20px;
+  max-width: 95vw;
+  max-height: 95vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+  margin: 0 0 12px 0;
+  padding: 0;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+/* Upload Section */
+.upload-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.upload-box {
+  text-align: center;
+  padding: 40px;
+  border: 3px dashed #667eea;
+  border-radius: 8px;
+  background: #f8f9ff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.upload-box:hover {
+  border-color: #764ba2;
+  background: #f0f2ff;
+}
+
+.upload-box p {
+  color: #333;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.file-input {
+  display: none;
+}
+
+.upload-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 6px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.upload-btn:hover {
+  background: #764ba2;
+}
+
+.file-size-note {
+  margin-top: 15px;
+  color: #999;
+  font-size: 12px;
+}
+
+/* Editor Section */
+.editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.crop-instructions {
+  background: #f0f2ff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  color: #333;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.crop-instructions p {
+  margin: 0;
+}
+
+/* Crop Editor Canvas */
+.crop-editor {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  padding: 6px;
+  cursor: grab;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  transition: background-color 0.2s ease;
+}
+
+.crop-editor:active {
+  cursor: grabbing;
+  background: #efefef;
+}
+
+.crop-editor canvas {
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 4px;
+  background: white;
+  object-fit: contain;
+  image-rendering: auto;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 8px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.zoom-controls button {
+  padding: 8px 14px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.zoom-controls button:hover {
+  background: #764ba2;
+}
+
+.zoom-level {
+  color: #333;
+  font-weight: 500;
+  font-size: 14px;
+  min-width: 50px;
+  text-align: center;
+}
+
+/* Preview Section */
+.preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.preview-container {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.preview-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.btn {
+  padding: 12px 30px;
+  font-size: 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #764ba2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #e0e0e0;
+  color: #333;
+}
+
+.btn-secondary:hover {
+  background: #d0d0d0;
+  transform: translateY(-2px);
+}
+
+/* Responsive Design */
+@media (max-width: 900px) {
+  .container {
+    padding: 15px;
+  }
+
+  h1 {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .crop-instructions {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+
+  .editor-section {
+    gap: 6px;
+  }
+
+  .zoom-controls {
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .zoom-controls button {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+
+  .zoom-level {
+    font-size: 11px;
+    min-width: 40px;
+  }
+
+  .btn {
+    padding: 8px 20px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 700px) {
+  .container {
+    padding: 10px;
+  }
+
+  h1 {
+    font-size: 18px;
+    margin-bottom: 6px;
+  }
+
+  .crop-instructions {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .editor-section {
+    gap: 5px;
+  }
+
+  .zoom-controls {
+    gap: 4px;
+    padding: 5px;
+  }
+
+  .zoom-controls button {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .zoom-level {
+    font-size: 10px;
+    min-width: 35px;
+  }
+
+  .action-buttons {
+    gap: 6px;
+  }
+
+  .btn {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 500px) {
+  .container {
+    padding: 8px;
+  }
+
+  h1 {
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .crop-instructions {
+    font-size: 9px;
+    padding: 4px 6px;
+  }
+
+  .editor-section {
+    gap: 4px;
+  }
+
+  .zoom-controls {
+    gap: 3px;
+    padding: 4px;
+  }
+
+  .zoom-controls button {
+    padding: 3px 6px;
+    font-size: 9px;
+  }
+
+  .zoom-level {
+    font-size: 9px;
+    min-width: 30px;
+  }
+
+  .btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+}
