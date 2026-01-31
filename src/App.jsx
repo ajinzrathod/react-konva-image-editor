@@ -43,25 +43,41 @@ function ImageCropper() {
     const calculateDimensions = () => {
       const headerHeight = 80 // Title
       const instructionsHeight = 50 // Instructions
-      const zoomControlsHeight = 50 // Zoom controls
       const actionButtonsHeight = 50 // Action buttons
-      const padding = 60 // Total padding/margins
+      const padding = 40 // Total padding/margins
       
-      const availableHeight = window.innerHeight - headerHeight - instructionsHeight - zoomControlsHeight - actionButtonsHeight - padding
+      const availableHeight = window.innerHeight - headerHeight - instructionsHeight - actionButtonsHeight - padding
       const availableWidth = window.innerWidth - 40 // Left/right margins
       
-      // Maintain 16:10 aspect ratio for canvas or fit to available space
-      let width = Math.min(availableWidth, 900)
-      let height = Math.min(availableHeight, 500)
+      // Detect orientation and adjust canvas size accordingly
+      const isPortrait = window.innerHeight > window.innerWidth
       
-      // Adjust height to maintain aspect ratio if needed
-      const targetAspect = 900 / 500 // 1.8
-      const currentAspect = width / height
+      let width, height
       
-      if (currentAspect > targetAspect) {
-        width = height * targetAspect
+      if (isPortrait) {
+        // Portrait mode: prioritize height, use reasonable width
+        height = Math.min(availableHeight, 600)
+        width = Math.min(availableWidth, 500)
+        // Fit to narrower dimension
+        const aspectX = availableWidth / availableHeight
+        if (aspectX < 0.7) {
+          // Very narrow portrait
+          width = Math.min(availableWidth, height * 0.6)
+        }
       } else {
-        height = width / targetAspect
+        // Landscape mode: maintain 16:10 aspect ratio
+        width = Math.min(availableWidth, 900)
+        height = Math.min(availableHeight, 500)
+        
+        // Maintain 16:10 aspect ratio
+        const targetAspect = 900 / 500 // 1.8
+        const currentAspect = width / height
+        
+        if (currentAspect > targetAspect) {
+          width = height * targetAspect
+        } else {
+          height = width / targetAspect
+        }
       }
       
       setStageDimensions({ width: Math.floor(width), height: Math.floor(height) })
