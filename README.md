@@ -27,3 +27,16 @@ Features:
 - Download final merged image.
 
 https://github.com/user-attachments/assets/9fe4b1e0-318d-4db0-ab6a-ea6862c3cc58
+
+# Observability
+
+<img width="1011" height="524" alt="image" src="https://github.com/user-attachments/assets/ac334196-2ef2-4c5f-8d9d-4a28ff8b5524" />
+
+<img width="905" height="629" alt="Screenshot 2026-02-01 at 19 27 01" src="https://github.com/user-attachments/assets/211973a8-2d43-4cd8-b0a7-2e812af5d434" />
+
+<img width="1046" height="269" alt="image" src="https://github.com/user-attachments/assets/673a4639-1fde-4ace-9bb6-1ee0dbc08497" />
+
+<img width="1230" height="689" alt="image" src="https://github.com/user-attachments/assets/6f5ce2a9-9e1b-4dd9-b757-888840322e98" />
+
+
+
