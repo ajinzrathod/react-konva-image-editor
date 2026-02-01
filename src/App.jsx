@@ -62,6 +62,7 @@ function ImageCropper() {
   const [errorMessage, setErrorMessage] = useState('') // Error message state
   const [isProcessing, setIsProcessing] = useState(false) // Loading state
   const [isCameraActive, setIsCameraActive] = useState(false) // Camera state
+  const [cameraFacing, setCameraFacing] = useState('environment') // 'environment' (back) or 'user' (front)
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
   const canvasRef = useRef(null)
@@ -484,11 +485,18 @@ function ImageCropper() {
     }
   }
 
-  const startCamera = async () => {
+  const startCamera = async (facing = 'environment') => {
     try {
       setErrorMessage('')
+      setCameraFacing(facing)
+      
+      // Stop existing stream
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop())
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }
+        video: { facingMode: facing }
       })
       streamRef.current = stream
       setIsCameraActive(true)
@@ -510,6 +518,11 @@ function ImageCropper() {
         showError('Unable to access camera. ' + err.message)
       }
     }
+  }
+
+  const toggleCamera = () => {
+    const newFacing = cameraFacing === 'environment' ? 'user' : 'environment'
+    startCamera(newFacing)
   }
 
   const stopCamera = () => {
@@ -590,8 +603,25 @@ function ImageCropper() {
             bottom: '20px',
             display: 'flex',
             gap: '15px',
-            zIndex: 1001
+            zIndex: 1001,
+            flexWrap: 'wrap',
+            justifyContent: 'center'
           }}>
+            <button
+              onClick={toggleCamera}
+              style={{
+                padding: '12px 30px',
+                fontSize: '16px',
+                backgroundColor: '#9b59b6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              🔄 {cameraFacing === 'environment' ? 'Front' : 'Back'}
+            </button>
             <button
               onClick={capturePhoto}
               style={{
