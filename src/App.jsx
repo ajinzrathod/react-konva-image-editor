@@ -61,10 +61,14 @@ function ImageCropper() {
   const [userName, setUserName] = useState('') // User name state
   const [errorMessage, setErrorMessage] = useState('') // Error message state
   const [isProcessing, setIsProcessing] = useState(false) // Loading state
+  const [isCameraActive, setIsCameraActive] = useState(false) // Camera state
   const fileInputRef = useRef(null)
+  const cameraInputRef = useRef(null)
   const canvasRef = useRef(null)
   const imageRef = useRef(null)
   const stageRef = useRef(null)
+  const videoRef = useRef(null)
+  const streamRef = useRef(null)
 
   // Show error message
   const showError = (message) => {
@@ -175,8 +179,8 @@ function ImageCropper() {
     const file = e.target.files?.[0]
     if (!file) return
 
-    if (file.size > 5 * 1024 * 1024) {
-      showError('Image size exceeds 5MB. Please choose a smaller image.')
+    if (file.size > 10 * 1024 * 1024) {
+      showError('Image size exceeds 10MB. Please choose a smaller image.')
       return
     }
 
@@ -475,10 +479,152 @@ function ImageCropper() {
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = ''
+    }
+  }
+
+  const startCamera = async () => {
+    try {
+      setErrorMessage('')
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      })
+      streamRef.current = stream
+      setIsCameraActive(true)
+      
+      // Set video src after a brief delay to ensure element is mounted
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+        }
+      }, 100)
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        showError('Camera permission denied. Please allow camera access.')
+      } else if (err.name === 'NotFoundError') {
+        showError('No camera found on this device.')
+      } else if (err.name === 'NotReadableError') {
+        showError('Camera is already in use by another app.')
+      } else {
+        showError('Unable to access camera. ' + err.message)
+      }
+    }
+  }
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop())
+      streamRef.current = null
+    }
+    setIsCameraActive(false)
+  }
+
+  const capturePhoto = () => {
+    if (!videoRef.current) return
+    
+    const canvas = document.createElement('canvas')
+    canvas.width = videoRef.current.videoWidth
+    canvas.height = videoRef.current.videoHeight
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(videoRef.current, 0, 0)
+    
+    const dataUrl = canvas.toDataURL('image/jpeg')
+    const img = new window.Image()
+    img.onload = () => {
+      setUploadedImage(img)
+      const scaleX = STAGE_WIDTH / img.width
+      const scaleY = STAGE_HEIGHT / img.height
+      const fitScale = Math.min(scaleX, scaleY)
+      const clampedScale = Math.min(fitScale, MAX_SCALE)
+      
+      const scaledWidth = img.width * clampedScale
+      const scaledHeight = img.height * clampedScale
+      const imgX = (STAGE_WIDTH - scaledWidth) / 2
+      const imgY = (STAGE_HEIGHT - scaledHeight) / 2
+
+      setImageScale(clampedScale)
+      setImageState({ x: imgX, y: imgY, scale: clampedScale })
+      
+      const margin = 0.08
+      const cropWidth = scaledWidth * (1 - 2 * margin)
+      const cropHeight = scaledHeight * (1 - 2 * margin)
+      const cropX = imgX + scaledWidth * margin
+      const cropY = imgY + scaledHeight * margin
+      
+      setCropBox({ x: cropX, y: cropY, width: cropWidth, height: cropHeight })
+      setMergedImage(null)
+      stopCamera()
+    }
+    img.src = dataUrl
   }
 
   return (
     <div className="app">
+      {isCameraActive && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: '#000',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+          <div style={{
+            position: 'absolute',
+            bottom: '20px',
+            display: 'flex',
+            gap: '15px',
+            zIndex: 1001
+          }}>
+            <button
+              onClick={capturePhoto}
+              style={{
+                padding: '12px 30px',
+                fontSize: '16px',
+                backgroundColor: '#667eea',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              📸 Capture
+            </button>
+            <button
+              onClick={stopCamera}
+              style={{
+                padding: '12px 30px',
+                fontSize: '16px',
+                backgroundColor: '#e74c3c',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              ✕ Cancel
+            </button>
+          </div>
+        </div>
+      )}
       <div className="container">
         <h1 className="app-title">✨ Swaminarayan Editor ✨</h1>
 
@@ -508,18 +654,39 @@ function ImageCropper() {
                 onChange={handleImageUpload}
                 className="file-input"
               />
-              <button 
-                onClick={() => {
-                  if (!userName.trim()) {
-                    showError('Please enter your name first')
-                    return
-                  }
-                  fileInputRef.current?.click()
-                }} 
-                className="upload-btn btn-large">
-                Choose Image
-              </button>
-              <p className="file-size-note">📦 Max size: 5MB</p>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageUpload}
+                className="file-input"
+              />
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+                <button 
+                  onClick={() => {
+                    if (!userName.trim()) {
+                      showError('Please enter your name first')
+                      return
+                    }
+                    fileInputRef.current?.click()
+                  }} 
+                  className="upload-btn btn-large">
+                  Choose Image
+                </button>
+                <button 
+                  onClick={() => {
+                    if (!userName.trim()) {
+                      showError('Please enter your name first')
+                      return
+                    }
+                    startCamera()
+                  }} 
+                  className="upload-btn btn-large">
+                  📷 Take Photo
+                </button>
+              </div>
+              <p className="file-size-note">📦 Max size: 10MB</p>
             </div>
           </div>
         ) : !mergedImage ? (
