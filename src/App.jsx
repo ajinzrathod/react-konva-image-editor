@@ -2,42 +2,77 @@ import { useState, useRef, useEffect } from 'react'
 import { Stage, Layer, Image as KonvaImage, Rect } from 'react-konva'
 import './App.css'
 import templateImage from './assets/template.png'
+import template2Image from './assets/template2.jpg'
 
-// Cache clear marker - v2
-// ===== CONFIGURATION =====
-// Update these values when changing template image
+// ===== TEMPLATE CONFIGURATION =====
+// All coordinates are in the template image's own pixel space.
+//
+// photo.mode
+//   'behind' -> template has a transparent hole; photo is drawn first, template on top
+//   'clip'   -> template is opaque; template is drawn first, photo on top clipped to photo.clipPath
+//
+// text.mode
+//   'box'  -> filled rectangle with the name centered inside it
+//   'line' -> name sits on an existing ruled line, no background
+const TEMPLATES = {
+  mahotsav: {
+    id: 'mahotsav',
+    label: 'Murti Pranpratishtha',
+    image: templateImage,
+    photo: {
+      mode: 'behind',
+      // Derived from corner points p3 (top-left) and p2 (bottom-right)
+      region: { x: 1007, y: 1020, width: 692, height: 819 }
+    },
+    text: {
+      mode: 'box',
+      region: { x: 1021, y: 1839, width: 679, height: 123 },
+      bgColor: '#ed7f02',
+      color: '#FFFFFF'
+    }
+  },
+  padharamni: {
+    id: 'padharamni',
+    label: 'Ghar Padharamni',
+    image: template2Image,
+    photo: {
+      mode: 'clip',
+      // Bounding box of the arched frame opening
+      region: { x: 434, y: 626, width: 2154, height: 2152 },
+      // Outline of the arched opening, traced from the template artwork
+      clipPath: [
+        [1560, 626], [1560, 631], [1569, 652], [1599, 675], [1662, 705], [2012, 708],
+        [2050, 719], [2059, 735], [2077, 740], [2084, 752], [2091, 819], [2210, 833],
+        [2291, 865], [2323, 889], [2328, 903], [2349, 916], [2363, 942], [2370, 984],
+        [2437, 998], [2493, 1023], [2537, 1058], [2542, 1074], [2563, 1088], [2579, 1121],
+        [2588, 1167], [2586, 2610], [2567, 2661], [2556, 2668], [2530, 2708], [2481, 2742],
+        [2433, 2768], [2412, 2773], [2412, 2778], [601, 2778], [601, 2773], [529, 2735],
+        [517, 2719], [503, 2717], [457, 2666], [450, 2654], [450, 2636], [436, 2612],
+        [434, 1169], [441, 1128], [457, 1125], [459, 1088], [508, 1037], [584, 998],
+        [654, 984], [656, 954], [675, 942], [675, 914], [701, 886], [731, 865],
+        [789, 847], [812, 833], [930, 819], [937, 752], [953, 729], [972, 717],
+        [1009, 708], [1362, 705], [1425, 677], [1455, 650], [1464, 631], [1464, 626]
+      ]
+    },
+    text: {
+      mode: 'line',
+      // The ruled line after "પ.ભ. શ્રી" sits at y = 3373, spanning x = 949..2354
+      x: 985,
+      width: 1355,
+      baselineY: 3358,
+      color: '#F2CF7D',
+      maxFontSize: 105
+    }
+  }
+}
+
+const DEFAULT_TEMPLATE_ID = 'padharamni'
+
 const CONFIG = {
-  // Template region coordinates (4 corner points defining the target area)
-  templateRegion: {
-    // p1: { x: 900, y: 1900 },
-    // p2: { x: 1810, y: 1900 },
-    // p3: { x: 900, y: 1000 },
-    // p4: { x: 1810, y: 1000 }
-
-    p1: { x: 1007, y: 1839 }, 
-    p2: { x: 1699, y: 1839 }, 
-    p3: { x: 1007, y: 1020 }, 
-    p4: { x: 1699, y: 1020 }
-  },
-  // Text region coordinates (name/label area)
-  textRegion: {
-    p1: { x: 1021, y: 1839 },
-    p2: { x: 1700, y: 1839 },
-    p3: { x: 1700, y: 1962 },
-    p4: { x: 1021, y: 1962 }
-  },
-  textBgColor: '#ed7f02',
-  textFgColor: '#FFFFFF', // White text
   handleSize: 10,
   gridColor: '#667eea',
   maxScale: 3.0 // Prevent excessive zoom-in
 }
-
-// Calculate aspect ratio from template region
-const TEMPLATE_REGION = CONFIG.templateRegion
-const TEMPLATE_REGION_WIDTH = Math.abs(TEMPLATE_REGION.p2.x - TEMPLATE_REGION.p1.x)
-const TEMPLATE_REGION_HEIGHT = Math.abs(TEMPLATE_REGION.p1.y - TEMPLATE_REGION.p3.y)
-const CROP_ASPECT_RATIO = TEMPLATE_REGION_WIDTH / TEMPLATE_REGION_HEIGHT
 
 const HANDLE_SIZE = CONFIG.handleSize
 const GRID_COLOR = CONFIG.gridColor
@@ -49,7 +84,30 @@ const HANDLES = {
   T: 't', B: 'b', L: 'l', R: 'r'
 }
 
+const CROP_MARGIN = 0.08 // 8% breathing room around the initial crop box
+
+// Largest box of the given aspect ratio that fits inside the displayed image
+const computeInitialCropBox = (imgX, imgY, scaledWidth, scaledHeight, aspectRatio) => {
+  const availableWidth = scaledWidth * (1 - 2 * CROP_MARGIN)
+  const availableHeight = scaledHeight * (1 - 2 * CROP_MARGIN)
+
+  let width = availableWidth
+  let height = width / aspectRatio
+  if (height > availableHeight) {
+    height = availableHeight
+    width = height * aspectRatio
+  }
+
+  return {
+    x: imgX + (scaledWidth - width) / 2,
+    y: imgY + (scaledHeight - height) / 2,
+    width,
+    height
+  }
+}
+
 function ImageCropper() {
+  const [templateId, setTemplateId] = useState(DEFAULT_TEMPLATE_ID)
   const [uploadedImage, setUploadedImage] = useState(null)
   const [cropBox, setCropBox] = useState({ x: 50, y: 50, width: 300, height: 400 })
   const [imageState, setImageState] = useState({ x: 0, y: 0, scale: 1 })
@@ -70,6 +128,10 @@ function ImageCropper() {
   const stageRef = useRef(null)
   const videoRef = useRef(null)
   const streamRef = useRef(null)
+
+  const template = TEMPLATES[templateId]
+  const photoRegion = template.photo.region
+  const cropAspectRatio = photoRegion.width / photoRegion.height
 
   // Show error message
   const showError = (message) => {
@@ -162,16 +224,9 @@ function ImageCropper() {
       
       setImageScale(clampedScale)
       setImageState({ x: imgX, y: imgY, scale: clampedScale })
-      
-      // Initialize crop box with sensible margins
-      const margin = 0.08 // 8% margin on each side
-      const cropWidth = scaledWidth * (1 - 2 * margin)
-      const cropHeight = scaledHeight * (1 - 2 * margin)
-      const cropX = imgX + scaledWidth * margin
-      const cropY = imgY + scaledHeight * margin
-      setCropBox({ x: cropX, y: cropY, width: cropWidth, height: cropHeight })
+      setCropBox(computeInitialCropBox(imgX, imgY, scaledWidth, scaledHeight, cropAspectRatio))
     }
-  }, [stageDimensions, uploadedImage])
+  }, [stageDimensions, uploadedImage, cropAspectRatio])
 
 
 
@@ -212,23 +267,10 @@ function ImageCropper() {
         const imgX = (STAGE_WIDTH - scaledWidth) / 2
         const imgY = (STAGE_HEIGHT - scaledHeight) / 2
 
-        // Calculate initial crop box that fits entirely within the image bounds
-        // Leave 8% margin on each side for flexibility
-        const margin = 0.08
-        const initialCropWidth = scaledWidth * (1 - 2 * margin)
-        const initialCropHeight = scaledHeight * (1 - 2 * margin)
-        const initialCropX = imgX + scaledWidth * margin
-        const initialCropY = imgY + scaledHeight * margin
-
         setUploadedImage(img)
         setImageScale(clampedScale) // Store fixed scale
         setImageState({ x: imgX, y: imgY, scale: clampedScale })
-        setCropBox({
-          x: initialCropX,
-          y: initialCropY,
-          width: initialCropWidth,
-          height: initialCropHeight
-        })
+        setCropBox(computeInitialCropBox(imgX, imgY, scaledWidth, scaledHeight, cropAspectRatio))
         setMergedImage(null)
       }
       img.src = event.target.result
@@ -248,7 +290,7 @@ function ImageCropper() {
     const imgBottom = imgTop + imgHeight
 
     // Enforce aspect ratio constraint
-    const calculatedHeight = width / CROP_ASPECT_RATIO
+    const calculatedHeight = width / cropAspectRatio
     let clampedWidth = width
     let clampedHeight = calculatedHeight
 
@@ -259,16 +301,16 @@ function ImageCropper() {
     clampedHeight = Math.min(clampedHeight, imgBottom - clampedY)
 
     // Re-adjust width to maintain aspect ratio if height was clamped
-    clampedWidth = clampedHeight * CROP_ASPECT_RATIO
+    clampedWidth = clampedHeight * cropAspectRatio
 
     // Ensure minimum size (at least 1/3 of the smaller dimension or 80px)
     const minSize = Math.min(Math.max(80, Math.min(imgWidth, imgHeight) / 3), 150)
     const minWidth = minSize
-    const minHeight = minSize / CROP_ASPECT_RATIO
+    const minHeight = minSize / cropAspectRatio
 
     if (clampedWidth < minWidth) {
       clampedWidth = minWidth
-      clampedHeight = clampedWidth / CROP_ASPECT_RATIO
+      clampedHeight = clampedWidth / cropAspectRatio
     }
 
     // Re-clamp position after enforcing minimum size and aspect ratio
@@ -287,7 +329,6 @@ function ImageCropper() {
   const handleMouseDown = (e) => {
     e.preventDefault()
   }
-
 
 
   // Handle pointer move on any handle
@@ -355,6 +396,103 @@ function ImageCropper() {
     setDragHandle(null)
   }
 
+  // Crop the selected part of the uploaded image into its own canvas
+  const buildCroppedCanvas = () => {
+    const imgX = (cropBox.x - imageState.x) / imageState.scale
+    const imgY = (cropBox.y - imageState.y) / imageState.scale
+    const imgWidth = cropBox.width / imageState.scale
+    const imgHeight = cropBox.height / imageState.scale
+
+    const croppedCanvas = document.createElement('canvas')
+    croppedCanvas.width = imgWidth
+    croppedCanvas.height = imgHeight
+    const croppedCtx = croppedCanvas.getContext('2d')
+    croppedCtx.drawImage(uploadedImage, imgX, imgY, imgWidth, imgHeight, 0, 0, imgWidth, imgHeight)
+    return croppedCanvas
+  }
+
+  // Scale the crop to cover the template's photo region and center it there
+  const drawPhotoInRegion = (ctx, croppedCanvas, region) => {
+    const scaleX = region.width / croppedCanvas.width
+    const scaleY = region.height / croppedCanvas.height
+    // Use Math.max to fill the region (may overflow slightly)
+    const scale = Math.max(scaleX, scaleY)
+
+    const scaledWidth = croppedCanvas.width * scale
+    const scaledHeight = croppedCanvas.height * scale
+    const offsetX = (region.width - scaledWidth) / 2
+    const offsetY = (region.height - scaledHeight) / 2
+
+    ctx.drawImage(croppedCanvas, region.x + offsetX, region.y + offsetY, scaledWidth, scaledHeight)
+  }
+
+  const applyClipPath = (ctx, clipPath) => {
+    ctx.beginPath()
+    clipPath.forEach(([x, y], index) => {
+      if (index === 0) {
+        ctx.moveTo(x, y)
+      } else {
+        ctx.lineTo(x, y)
+      }
+    })
+    ctx.closePath()
+    ctx.clip()
+  }
+
+  // Name inside a filled rectangle, centered both ways
+  const drawNameInBox = (ctx, text, name) => {
+    const { region, bgColor, color } = text
+    const { x: textX, y: textY, width: textWidth, height: textHeight } = region
+
+    ctx.fillStyle = bgColor
+    ctx.fillRect(textX, textY, textWidth, textHeight)
+
+    // Calculate dynamic font size to fit text in region
+    const padding = 20 // padding on sides
+    const availableWidth = textWidth - (padding * 2)
+    const availableHeight = textHeight - 10
+
+    // Start with a reasonable font size and adjust down if needed
+    let fontSize = Math.min(availableHeight * 0.85, availableWidth / (name.length * 0.55))
+
+    // Try the calculated font size and adjust if text is still too wide
+    let attempts = 0
+    while (attempts < 5) {
+      ctx.font = `bold ${Math.round(fontSize)}px Arial`
+      const metrics = ctx.measureText(name)
+      if (metrics.width <= availableWidth) break
+      fontSize *= 0.9 // Reduce by 10% if too wide
+      attempts++
+    }
+
+    // Draw text centered (both horizontally and vertically)
+    ctx.fillStyle = color
+    ctx.font = `bold ${Math.round(fontSize)}px Arial`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(name, textX + textWidth / 2, textY + textHeight / 2)
+  }
+
+  // Name resting on a ruled line that is already part of the template
+  const drawNameOnLine = (ctx, text, name) => {
+    const { x, width, baselineY, color, maxFontSize } = text
+
+    let fontSize = maxFontSize
+    let attempts = 0
+    while (attempts < 20 && fontSize > 12) {
+      ctx.font = `bold ${Math.round(fontSize)}px Arial`
+      if (ctx.measureText(name).width <= width) break
+      fontSize *= 0.92
+      attempts++
+    }
+
+    ctx.fillStyle = color
+    ctx.font = `bold ${Math.round(fontSize)}px Arial`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'alphabetic'
+    ctx.fillText(name, x + width / 2, baselineY)
+  }
+
   // Merge images
   const handleMergeImages = async () => {
     if (!uploadedImage) {
@@ -371,88 +509,34 @@ function ImageCropper() {
         canvas.height = templateImg.height
 
         const ctx = canvas.getContext('2d')
+        const croppedCanvas = buildCroppedCanvas()
 
-        // Calculate crop region on the uploaded image
-        const imgX = (cropBox.x - imageState.x) / imageState.scale
-        const imgY = (cropBox.y - imageState.y) / imageState.scale
-        const imgWidth = cropBox.width / imageState.scale
-        const imgHeight = cropBox.height / imageState.scale
-
-        const croppedCanvas = document.createElement('canvas')
-        croppedCanvas.width = imgWidth
-        croppedCanvas.height = imgHeight
-        const croppedCtx = croppedCanvas.getContext('2d')
-        croppedCtx.drawImage(uploadedImage, imgX, imgY, imgWidth, imgHeight, 0, 0, imgWidth, imgHeight)
-
-        // Calculate scale to fill the template region (use Math.max to cover the area)
-        const regionWidth = Math.abs(TEMPLATE_REGION.p2.x - TEMPLATE_REGION.p1.x)
-        const regionHeight = Math.abs(TEMPLATE_REGION.p3.y - TEMPLATE_REGION.p1.y)
-
-        const scaleX = regionWidth / imgWidth
-        const scaleY = regionHeight / imgHeight
-        // Use Math.max to fill the region (may overflow slightly)
-        const scale = Math.max(scaleX, scaleY)
-
-        const scaledWidth = imgWidth * scale
-        const scaledHeight = imgHeight * scale
-        const offsetX = (regionWidth - scaledWidth) / 2
-        const offsetY = (regionHeight - scaledHeight) / 2
-
-        // Draw cropped user image
-        ctx.drawImage(
-          croppedCanvas,
-          TEMPLATE_REGION.p3.x + offsetX,
-          TEMPLATE_REGION.p3.y + offsetY,
-          scaledWidth,
-          scaledHeight
-        )
-
-        // Draw template on top (its transparency will show user image behind)
-        ctx.drawImage(templateImg, 0, 0)
-
-        // Draw text region with background
-        const textRegion = CONFIG.textRegion
-        const textX = textRegion.p1.x
-        const textY = textRegion.p1.y
-        const textWidth = textRegion.p2.x - textRegion.p1.x
-        const textHeight = textRegion.p3.y - textRegion.p1.y
-
-        // Draw background rectangle
-        ctx.fillStyle = CONFIG.textBgColor
-        ctx.fillRect(textX, textY, textWidth, textHeight)
-
-        // Calculate dynamic font size to fit text in region
-        const padding = 20 // padding on sides
-        const availableWidth = textWidth - (padding * 2)
-        const availableHeight = textHeight - 10
-        
-        // Start with a reasonable font size and adjust down if needed
-        let fontSize = Math.min(availableHeight * 0.85, availableWidth / (userName.length * 0.55))
-        
-        // Try the calculated font size and adjust if text is still too wide
-        let attempts = 0
-        while (attempts < 5) {
-          ctx.font = `bold ${Math.round(fontSize)}px Arial`
-          const metrics = ctx.measureText(userName)
-          if (metrics.width <= availableWidth) break
-          fontSize *= 0.9 // Reduce by 10% if too wide
-          attempts++
+        if (template.photo.mode === 'behind') {
+          // Photo first, then the template whose transparent hole reveals it
+          drawPhotoInRegion(ctx, croppedCanvas, photoRegion)
+          ctx.drawImage(templateImg, 0, 0)
+        } else {
+          // Opaque template: draw it first, then the photo clipped to the frame opening
+          ctx.drawImage(templateImg, 0, 0)
+          ctx.save()
+          applyClipPath(ctx, template.photo.clipPath)
+          drawPhotoInRegion(ctx, croppedCanvas, photoRegion)
+          ctx.restore()
         }
 
-        // Draw text centered (both horizontally and vertically)
-        ctx.fillStyle = CONFIG.textFgColor
-        ctx.font = `bold ${Math.round(fontSize)}px Arial`
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        // Center point of the text region
-        const centerX = textX + textWidth / 2
-        const centerY = textY + textHeight / 2
-        ctx.fillText(userName, centerX, centerY)
+        const name = userName.trim()
+        if (name) {
+          if (template.text.mode === 'box') {
+            drawNameInBox(ctx, template.text, name)
+          } else {
+            drawNameOnLine(ctx, template.text, name)
+          }
+        }
 
         const mergedDataUrl = canvas.toDataURL('image/png')
         setMergedImage(mergedDataUrl)
       }
-      templateImg.src = templateImage
+      templateImg.src = template.image
     } catch (error) {
       console.error('Error merging images:', error)
       showError('Error merging images. Please try again.')
@@ -558,14 +642,7 @@ function ImageCropper() {
 
       setImageScale(clampedScale)
       setImageState({ x: imgX, y: imgY, scale: clampedScale })
-      
-      const margin = 0.08
-      const cropWidth = scaledWidth * (1 - 2 * margin)
-      const cropHeight = scaledHeight * (1 - 2 * margin)
-      const cropX = imgX + scaledWidth * margin
-      const cropY = imgY + scaledHeight * margin
-      
-      setCropBox({ x: cropX, y: cropY, width: cropWidth, height: cropHeight })
+      setCropBox(computeInitialCropBox(imgX, imgY, scaledWidth, scaledHeight, cropAspectRatio))
       setMergedImage(null)
       stopCamera()
     }
@@ -667,6 +744,19 @@ function ImageCropper() {
                   {errorMessage}
                 </div>
               )}
+              <p>Choose a template</p>
+              <div className="template-picker">
+                {Object.values(TEMPLATES).map((option) => (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setTemplateId(option.id)}
+                    className={`template-option${option.id === templateId ? ' template-option-active' : ''}`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
               <p>Enter your name</p>
               <input
                 type="text"
