@@ -3,6 +3,7 @@ import { Stage, Layer, Image as KonvaImage, Rect } from 'react-konva'
 import './App.css'
 import templateImage from './assets/template.png'
 import template2Image from './assets/template2.jpg'
+import { PADHARAMNI_FRAME_PATH, PADHARAMNI_FRAME_BOUNDS } from './templateShapes'
 
 // ===== TEMPLATE CONFIGURATION =====
 // All coordinates are in the template image's own pixel space.
@@ -37,22 +38,8 @@ const TEMPLATES = {
     image: template2Image,
     photo: {
       mode: 'clip',
-      // Bounding box of the arched frame opening
-      region: { x: 434, y: 626, width: 2154, height: 2152 },
-      // Outline of the arched opening, traced from the template artwork
-      clipPath: [
-        [1560, 626], [1560, 631], [1569, 652], [1599, 675], [1662, 705], [2012, 708],
-        [2050, 719], [2059, 735], [2077, 740], [2084, 752], [2091, 819], [2210, 833],
-        [2291, 865], [2323, 889], [2328, 903], [2349, 916], [2363, 942], [2370, 984],
-        [2437, 998], [2493, 1023], [2537, 1058], [2542, 1074], [2563, 1088], [2579, 1121],
-        [2588, 1167], [2586, 2610], [2567, 2661], [2556, 2668], [2530, 2708], [2481, 2742],
-        [2433, 2768], [2412, 2773], [2412, 2778], [601, 2778], [601, 2773], [529, 2735],
-        [517, 2719], [503, 2717], [457, 2666], [450, 2654], [450, 2636], [436, 2612],
-        [434, 1169], [441, 1128], [457, 1125], [459, 1088], [508, 1037], [584, 998],
-        [654, 984], [656, 954], [675, 942], [675, 914], [701, 886], [731, 865],
-        [789, 847], [812, 833], [930, 819], [937, 752], [953, 729], [972, 717],
-        [1009, 708], [1362, 705], [1425, 677], [1455, 650], [1464, 631], [1464, 626]
-      ]
+      region: PADHARAMNI_FRAME_BOUNDS,
+      clipPath: PADHARAMNI_FRAME_PATH
     },
     text: {
       mode: 'line',
